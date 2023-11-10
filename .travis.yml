@@ -1,20 +1,20 @@
 # linux matrix
-#language: python
-#os: linux
-#python:
-#    - "3.7"
-#    - "3.6"
-#    - "3.5"
-#env:
-#  - MPI=
-#  - MPI=1
+language: python
+os: linux
+python:
+    - "3.8"
+    - "3.7"
+    - "3.6"
+env:
+  - MPI=0
+  - MPI=1
 
 # OSX matrix
 matrix:
     include:
         - os: osx
           language: sh
-          env: TOXENV=py3 MPI=
+          env: TOXENV=py3 MPI=0
 
 # System packages
 addons:
@@ -38,19 +38,21 @@ before_install:
           pip3 install virtualenv;
           virtualenv -p python3 ~/venv;
           source ~/venv/bin/activate;
+          pip install --upgrade pip;
           pip install --upgrade "https://storage.googleapis.com/tensorflow/mac/cpu/tensorflow-2.1.0-cp37-cp37m-macosx_10_9_x86_64.whl";
       fi
+
+    - pip install --upgrade pip
 
     # PolyChord install
     - pip install numpy
     - git clone https://github.com/PolyChord/PolyChordLite PolyChord
     - cd PolyChord
-    - make MPI=$MPI pypolychord
-    - if [ "$MPI" ]; then 
-          CC=mpicc CXX=mpicxx python setup.py install;
+    - if [ "$MPI" -eq 1 ]; then
+          pip install . ;
       else 
-          python setup.py install;
-      fi
+          pip install . --global-option="--no-mpi";
+      fi;
     - cd ..
 
     # MultiNest install
@@ -59,7 +61,7 @@ before_install:
     - mkdir -p MultiNest/build
     - cd MultiNest/build
     - cmake ..
-    - if [ "$MPI" ]; then 
+    - if [ "$MPI" -eq 1 ]; then 
           make multinest_mpi_shared;
       else
           make multinest_shared;
@@ -79,7 +81,7 @@ install:
     - pip install -r requirements.txt
     - pip install pytest-cov codecov
     - pip install flake8 pydocstyle sphinx sphinx_rtd_theme
-    - if [ "$MPI" ]; then pip install mpi4py; fi
+    - if [ "$MPI" -eq 1 ]; then pip install mpi4py; fi
 
 before_script:
     # Test for pep-compliance
@@ -93,7 +95,7 @@ before_script:
 
 # Run tests
 script:
-    - if [ "$MPI" ];
+    - if [ "$MPI" -eq 1 ];
       then mpirun -np 2 python -m pytest tests;
       else python -m pytest tests --cov=pybambi;
       fi
